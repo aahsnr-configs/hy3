@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <vector>
 
 #include <hyprland/src/desktop/Workspace.hpp>
 #include <hyprland/src/plugins/PluginAPI.hpp>
@@ -10,7 +11,9 @@
 #include "log.hpp"
 
 inline HANDLE PHANDLE = nullptr;
-inline std::unique_ptr<Hy3Layout> g_Hy3Layout;
+
+// NEW: Registry to track all per-workspace layout instances dynamically
+extern std::vector<Hy3Layout*> g_hy3Layouts;
 
 inline void errorNotif() {
 	HyprlandAPI::addNotificationV2(
@@ -46,7 +49,6 @@ public:
 		return &**this;
 	}
 
-	// Bullshit microptimization case for strings
 	template <typename U = T>
 	typename std::enable_if<std::is_same<U, Hyprlang::STRING>::value, const char*>::type
 	operator*() const {

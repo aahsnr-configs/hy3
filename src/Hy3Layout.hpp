@@ -1,6 +1,10 @@
 #pragma once
 
 #include <hyprland/src/desktop/DesktopTypes.hpp>
+#include <hyprland/src/layout/algorithm/TiledAlgorithm.hpp>
+#include <hyprland/src/layout/target/Target.hpp>
+#include <hyprland/src/layout/space/Space.hpp>
+
 class Hy3Layout;
 
 enum class GroupEphemeralityOption {
@@ -11,8 +15,7 @@ enum class GroupEphemeralityOption {
 
 #include <list>
 #include <set>
-
-#include <hyprland/src/layout/IHyprLayout.hpp>
+#include <typeinfo>
 
 enum class ShiftDirection {
 	Left,
@@ -82,33 +85,22 @@ enum class ExpandFullscreenOption {
 
 PHLWORKSPACE workspace_for_action(bool allow_fullscreen = false);
 
-class Hy3Layout: public IHyprLayout {
+class Hy3Layout: public Layout::ITiledAlgorithm {
 public:
-	void onWindowCreatedTiling(PHLWINDOW, eDirection = DIRECTION_DEFAULT) override;
-	void onWindowRemovedTiling(PHLWINDOW) override;
-	void onWindowFocusChange(PHLWINDOW) override;
-	bool isWindowTiled(PHLWINDOW) override;
-	void recalculateMonitor(const MONITORID& monitor_id) override;
-	void recalculateWindow(PHLWINDOW) override;
-	void resizeActiveWindow(const Vector2D& delta, eRectCorner corner, PHLWINDOW pWindow = nullptr)
-	    override;
-	void
-	fullscreenRequestForWindow(PHLWINDOW, eFullscreenMode current_mode, eFullscreenMode target_mode)
-	    override;
-	std::any layoutMessage(SLayoutMessageHeader header, std::string content) override;
-	SWindowRenderLayoutHints requestRenderHints(PHLWINDOW) override;
-	void switchWindows(PHLWINDOW, PHLWINDOW) override;
-	void moveWindowTo(PHLWINDOW, const std::string& direction, bool silent) override;
-	void alterSplitRatio(PHLWINDOW, float, bool) override;
-	std::string getLayoutName() override;
-	PHLWINDOW getNextWindowCandidate(PHLWINDOW) override;
-	void replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) override;
-	bool isWindowReachable(PHLWINDOW) override;
-	void bringWindowToTop(PHLWINDOW) override;
-	Vector2D predictSizeForNewWindowTiled() override { return Vector2D(); }
+	Hy3Layout();
+	~Hy3Layout() override;
 
-	void onEnable() override;
-	void onDisable() override;
+	// Algorithm Virtual Overrides
+	SP<Layout::ITarget> getNextCandidate(SP<Layout::ITarget> old) override;
+	void addTarget(SP<Layout::ITarget> target) override;
+	void removeTarget(SP<Layout::ITarget> target) override;
+	void recalculate() override;
+	void resizeTarget(const Vector2D& delta, SP<Layout::ITarget> target, Layout::eRectCorner corner = Layout::CORNER_NONE) override;
+	std::expected<void, std::string> layoutMsg(const std::string_view& content) override;
+	void moveTargetInDirection(SP<Layout::ITarget> target, Math::eDirection dir, bool silent) override;
+	std::optional<Vector2D> predictSizeForNewTiledTarget() override { return {}; }
+
+	PHLWORKSPACE getWorkspace();
 
 	void insertNode(Hy3Node& node);
 	void makeGroupOnWorkspace(
@@ -166,6 +158,8 @@ public:
 	    bool stop_at_expanded = false
 	);
 
+	static void initGlobalHooks();
+	static void removeGlobalHooks();
 	static void renderHook(void*, SCallbackInfo&, std::any);
 	static void windowGroupUrgentHook(void*, SCallbackInfo&, std::any);
 	static void windowGroupUpdateRecursiveHook(void*, SCallbackInfo&, std::any);

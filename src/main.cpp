@@ -3,6 +3,7 @@
 #include <hyprland/src/plugins/PluginAPI.hpp>
 #include <hyprland/src/version.h>
 #include <hyprlang.hpp>
+#include <hyprland/src/layout/algorithm/TiledAlgorithm.hpp>
 
 #include "dispatchers.hpp"
 #include "globals.hpp"
@@ -82,14 +83,18 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 #undef CONF
 
-	g_Hy3Layout = std::make_unique<Hy3Layout>();
-	HyprlandAPI::addLayout(PHANDLE, "hy3", g_Hy3Layout.get());
+	// NEW: Register TiledAlgo using factory
+	HyprlandAPI::addTiledAlgo(PHANDLE, "hy3", &typeid(Hy3Layout),[]() {
+		return makeUnique<Hy3Layout>();
+	});
 
+	Hy3Layout::initGlobalHooks();
 	registerDispatchers();
-
 	HyprlandAPI::reloadConfig();
 
 	return {"hy3", "i3 like layout for hyprland", "outfoxxed", "0.1"};
 }
 
-APICALL EXPORT void PLUGIN_EXIT() {}
+APICALL EXPORT void PLUGIN_EXIT() {
+	Hy3Layout::removeGlobalHooks();
+}
